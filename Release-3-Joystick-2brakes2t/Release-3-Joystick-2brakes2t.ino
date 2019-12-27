@@ -1,10 +1,37 @@
+/* Parameters */
 
-/*mpu6050*/
+float actualInclineAngle = 30; //the angle that the bike and incline
+float xAxisDeadZone = 5.0; // angle that wont be triggered
 
+bool isShowPrintln = false;  // Show println result, false on exhibition mode
+
+//int brake1Range[2] = {477, 486}; //473/474 - 488
+int brake1Range[2] = {477, 481}; //473/474 - 488
+int throttle1Range[2] = {180, 850}; //169-850
+//int brake2Range[2] = {440, 472};//437/474 - 474
+int brake2Range[2] = {440, 456};//437/474 - 474
+int throttle2Range[2] = {192, 850};//170-850
+
+
+/* end of Parameters */
+/*
+Imports
+*/
+
+#include "Joystick.h"
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
 #include "MPU6050.h"
+
+#include <medianFilter.h>
+
+#include "EasingLib.h"
+
+Joystick_ Joystick;
+/*mpu6050*/
+
+
 
 // Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
 // is used in I2Cdev.h
@@ -43,21 +70,18 @@ bool blinkState = false;
 float gyroData[6];
 float gyroVal;
 float newGyroVal;
-bool isShowPrintln = false;
 
 
-#include <medianFilter.h>
+
+
 
 medianFilter Filter;
 
 /*end of mpu6050*/
 
 
-#include "Joystick.h"
-Joystick_ Joystick;
 
 // Set to true to test "Auto Send" mode or false to test "Manual Send" mode.
-//const bool testAutoSendMode = true;
 const bool testAutoSendMode = true;
 
 const unsigned long gcCycleDelta = 1000;
@@ -67,12 +91,8 @@ unsigned long gNextTime = 0;
 unsigned int gCurrentStep = 0;
 
 
-int brake1Range[2] = {477, 486}; //473/474 - 488
-int throttle1Range[2] = {180, 850}; //169-850
-int brake2Range[2] = {440, 472};//437/474 - 474
-int throttle2Range[2] = {192, 850};//170-850
 
-float xAxisDeadZone = 5.0;
+
 
 int brake1Pin = A0;    // select the input pin for the potentiometer
 int throttle1Pin = A1;    // select the input pin for the potentiometer
@@ -98,7 +118,6 @@ int pposVal = 0;
 int currBtn = 0;
 bool pressOnce = false;
 
-#include "EasingLib.h"
 
 Easing easing(EASE_IN_OUT_CUBIC, 10);
 Easing easing2(EASE_IN_OUT_CUBIC, 10);
@@ -204,7 +223,7 @@ void loop() {
   }
 
 
-  newGyroVal = gyroVal / 30 * 90;
+  newGyroVal = gyroVal / actualInclineAngle * 90;
 
 
   if (newGyroVal > 127) newGyroVal = 127;
@@ -253,8 +272,8 @@ void loop() {
     Joystick.releaseButton(currBtn);
   }
 
-  if (pposVal - posVal > abs(10)) {
-    currBtn = random(0, 10);
+  if (pposVal - posVal > abs(5)) {
+    currBtn = map(posVal, 0 , 1024, 0,32);
     Joystick.pressButton(currBtn);
     pressOnce = true;
   }
