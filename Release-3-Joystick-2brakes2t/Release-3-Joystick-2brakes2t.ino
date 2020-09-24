@@ -1,21 +1,23 @@
+/* Arduino Leonado */
+
 /* Parameters */
 
-float actualInclineAngle = 30; //the angle that the bike and incline
-float xAxisDeadZone = 5.0; // angle that wont be triggered
+float actualInclineAngle = 14; //the angle that the bike and incline
+float xAxisDeadZone = 8.0; // angle that wont be triggered
 
-bool isShowPrintln = false;  // Show println result, false on exhibition mode
+bool isShowPrintln = true;  // Show println result, false on exhibition mode
 
 //int brake1Range[2] = {477, 486}; //473/474 - 488
-int brake1Range[2] = {477, 481}; //473/474 - 488
+int brake1Range[2] = {480, 488}; //474/475 - 483  //A0
 int throttle1Range[2] = {180, 850}; //169-850
 //int brake2Range[2] = {440, 472};//437/474 - 474
-int brake2Range[2] = {440, 456};//437/474 - 474
+int brake2Range[2] = {478, 481};//437/474 - 474  //A3
 int throttle2Range[2] = {192, 850};//170-850
 
 
 /* end of Parameters */
 /*
-Imports
+  Imports
 */
 
 #include "Joystick.h"
@@ -124,15 +126,39 @@ Easing easing2(EASE_IN_OUT_CUBIC, 10);
 Easing easing3(EASE_IN_OUT_CUBIC, 10);
 
 long prevMillis = 0;
-
+int brake1ValMin = 0;
+int brake2ValMin = 0;
 void setup() {
 
   gyroSetup();
   pinMode(A0, INPUT_PULLUP); //TODO reset accel pos
+  pinMode(A3, INPUT_PULLUP); //TODO reset accel pos
   pinMode(13, OUTPUT);
 
   Serial.begin(115200);
+  Serial.println("Calibrating");
+  if (millis() < 5000) {
+    Serial.print(".");
+    int b1 = analogRead(brake1Pin) ;
+    if (b1 > brake1ValMin) {
+      brake1ValMin = b1;
+    }
+    int b2 = analogRead(brake2Pin) ;
+    if (b2 > brake2ValMin) {
+      brake2ValMin = b2;
+    }
+  }
 
+  //brake1Range[2] = {brake1ValMin, brake1ValMin+8}; //474/475 - 483  //A0
+  brake1Range[0] = brake1ValMin + 1;
+  brake1Range[1] = brake1ValMin + 4;
+  Serial.print("b1 min: ");
+  Serial.print(brake1ValMin);
+  brake2Range[0] = brake2ValMin + 1;
+  brake2Range[1] = brake2ValMin + 4;
+  Serial.print(" b2 min: ");
+  Serial.print(brake2ValMin);
+  Serial.println();
   //Joystick
   Joystick.setXAxisRange(-127, 127);
   Joystick.setThrottleRange(0, 255);
@@ -151,6 +177,7 @@ void loop() {
 
   // read the value from the sensor:
   brake1Val = analogRead(brake1Pin);
+  //  Serial.println(brake1Val);
   throttle1Val = analogRead(throttle1Pin);
   brake2Val = analogRead(brake2Pin);
   throttle2Val = analogRead(throttle2Pin);
@@ -273,7 +300,7 @@ void loop() {
   }
 
   if (pposVal - posVal > abs(5)) {
-    currBtn = map(posVal, 0 , 1024, 0,32);
+    currBtn = map(posVal, 0 , 1024, 0, 32);
     Joystick.pressButton(currBtn);
     pressOnce = true;
   }
@@ -287,7 +314,7 @@ void loop() {
   } else {
     finalBVal = newb2Val;
   }
-    if (t1Val > t2Val) {
+  if (t1Val > t2Val) {
     finalTVal = t1Val;
   } else {
     finalTVal = t2Val;
